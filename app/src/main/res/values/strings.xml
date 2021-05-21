@@ -1,6 +1,7 @@
 <resources>
     <string name="app_name">Application</string>
-    <string name="button"> </string>
+    <string name="button">Coordinates</string>
+    <string name="title_activity_maps">Map</string>
 
     <string-array name="cat_names">
         <item>Рыжик</item>

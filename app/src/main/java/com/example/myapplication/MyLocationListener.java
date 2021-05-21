@@ -18,7 +18,8 @@ class MyLocationListener implements LocationListener {
     static Location imHere;
 
     public static String getLocation() {
-        return String.format("%s (%f;%f) +%.0f",imHere.getProvider(),imHere.getLatitude(),imHere.getLongitude(),imHere.getAltitude());
+        return String.format("%s (%f;%f) +%.0f"
+                ,imHere.getProvider(),imHere.getLatitude(),imHere.getLongitude(),imHere.getAltitude());
 //        return imHere.toString().replaceAll("Location|et=\\S+|\\{.+\\}|acc=\\S+|\\[|\\]","").trim();
     }
 
