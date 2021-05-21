@@ -51,7 +51,9 @@ public class MainActivity extends AppCompatActivity {
 
     public void onMyButtonClick(View view) {
         Log.println(Log.INFO, PREFS_LOC.toUpperCase(), MyLocationListener.imHere.toString());
-        String text = locations.size() + ": " + MyLocationListener.getLocation();
+        String text =
+//                100+locations.size() + ": " +
+                MyLocationListener.getLocation();
         // выводим сообщение
         this.setTitle(text);
 //        Toast.makeText(this,text,Toast.LENGTH_SHORT).show();
