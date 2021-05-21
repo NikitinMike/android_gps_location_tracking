@@ -6,6 +6,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -56,7 +57,7 @@ public class MainActivity extends AppCompatActivity {
                 MyLocationListener.getLocation();
         // выводим сообщение
         this.setTitle(text);
-//        Toast.makeText(this,text,Toast.LENGTH_SHORT).show();
+        Toast.makeText(this,text, Toast.LENGTH_SHORT).show();
         // определяем строковый массив
         locations.add(0, text);
         freshListView();
