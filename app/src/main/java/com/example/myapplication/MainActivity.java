@@ -5,7 +5,9 @@ import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.view.Window;
 import android.widget.ArrayAdapter;
+import android.widget.GridView;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -16,14 +18,19 @@ import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.PolylineOptions;
 
-import java.io.FileOutputStream;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Timer;
+import java.util.TimerTask;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
 
@@ -35,9 +42,28 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     final String LOG_TAG = "myLogs";
     GoogleMap mMap;
-//    Timer myTimer = new Timer();
     int n=0;
     SupportMapFragment mapFragment;
+
+    Window window;
+    Timer timer;
+    // Метод для описания того, что будет происходить при работе таймера (задача для таймера):
+    class MyTimerTask extends TimerTask {
+        @Override
+        public void run() {
+            runOnUiThread(new Runnable(){
+                // Отображаем информацию в текстовом поле count:
+                @Override
+                public void run() {
+//                    window.setTitle(new Date().toString());
+                    String text = MyLocationListener.getLocation();
+//                100+locations.size() + ": " +
+                    locations.add(text);
+                    freshListView();
+                    System.out.println(new Date()+" "+text);
+                }});
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,8 +80,31 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         SharedPreferences settings = this.getSharedPreferences(PREFS_NAME, 0);
         music = settings.getBoolean("music", true);
         locations.addAll(settings.getStringSet(PREFS_LOC, new HashSet(locations)));
-        Collections.sort(locations, (b, a) -> a.compareTo(b));
+        Collections.sort(locations, (a, b) -> compare(getPoint(a),getPoint(b)));
+        System.out.println(locations);
 
+        // выполняем задачу MyTimerTask, описание которой будет ниже:
+        window = this.getWindow();
+        timer = new Timer();
+        timer.schedule(new MyTimerTask(), 10000, 10000);
+    }
+
+
+    LatLng getPoint(Object o) {
+        final Pattern pattern = Pattern.compile("(\\d+,\\d+);(\\d+,\\d+)");
+        Matcher matcher = pattern.matcher(o.toString());
+        if (matcher.find()) {
+            LatLng point = new LatLng(
+                    Float.valueOf(matcher.group(1).replace(",", ".")),
+                    Float.valueOf(matcher.group(2).replace(",", "."))
+            );
+            return point;
+        }
+        return null;
+    }
+
+    int compare(LatLng b,LatLng a){
+        return (int)(((a.latitude == b.latitude) ?a.longitude-b.longitude :a.latitude-b.latitude)*1000000);
     }
 
     @Override
@@ -65,13 +114,35 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         // Add a marker in Sydney and move the camera
 //       LatLng me = new LatLng(56.628335, 47.876477);
         LatLng me = new LatLng(location.getLatitude(),location.getLongitude());
+
+        PolylineOptions line = new PolylineOptions();
+//        line.width(4f).color(R.color.indigo_900);
+        LatLngBounds.Builder latLngBuilder = new LatLngBounds.Builder();
+        for (String o : locations) {
+            LatLng point = getPoint(o);
+            if(point!=null) line.add(point);
+//                latLngBuilder.include(point);
+//            if (i == 0) {
+//                MarkerOptions startMarkerOptions = new MarkerOptions()
+//                        .position(mPoints.get(i))
+//                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_marker_a));
+//                mMap.addMarker(startMarkerOptions);
+//            } else if (i == mPoints.size() - 1) {
+//                MarkerOptions endMarkerOptions = new MarkerOptions()
+//                        .position(mPoints.get(i))
+//                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_marker_b));
+//                mMap.addMarker(endMarkerOptions);
+//            }
+        }
+        mMap.addPolyline(line);
+
         mMap.moveCamera(CameraUpdateFactory.newLatLng(me));
 //        1: World
 //        5: Landmass/continent
 //        10: City
 //        15: Streets
 //        20: Buildings
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(me, 17.0f));
+        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(me, 14.0f));
         mMap.addMarker(new MarkerOptions().position(me).title("It's Me"));
 //        mMap.setMaxZoomPreference(mMap.getMaxZoomLevel());
 //        getLocation();
@@ -93,14 +164,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     public void onMyButtonClick(View view) {
         Log.println(Log.INFO, PREFS_LOC.toUpperCase(), MyLocationListener.imHere.toString());
-        String text =
 //                100+locations.size() + ": " +
-                MyLocationListener.getLocation();
+        String text = MyLocationListener.getLocation();
         // выводим сообщение
         this.setTitle(text);
         Toast.makeText(this,text, Toast.LENGTH_SHORT).show();
         // определяем строковый массив
-        locations.add(0, text);
+        locations.add(text);
         freshListView();
 
         //save music setup to system
