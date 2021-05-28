@@ -34,6 +34,7 @@ import java.util.regex.Pattern;
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     static final ArrayList<String> locations = new ArrayList<>();
+    static final ArrayList<LatLng> locationPoints = new ArrayList<>();
     int points = locations.size();
     int[] neighbors = new int[points];
 
@@ -80,7 +81,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             LatLng b = getPoint(locations.get(j));
             neighbors[j] = (int) ((Math.abs(b.latitude-a.latitude)+Math.abs(b.longitude-a.longitude))*1000000);
         }
-        for (int neighbor : neighbors) System.out.print(neighbor+", ");
+//        for (int neighbor : neighbors) System.out.print(neighbor+", ");
         return neighbors;
     }
 
@@ -101,16 +102,19 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         SharedPreferences settings = this.getSharedPreferences(PREFS_NAME, 0);
         music = settings.getBoolean("music", true);
         locations.addAll(settings.getStringSet(PREFS_LOC, new HashSet(locations)));
-        Collections.sort(locations, (a, b) -> compare(getPoint(a),getPoint(b)));
-        points = locations.size();
-        System.out.println(points);
-        System.out.println(locations);
-        fillMatrix();
+        points = locations.size(); System.out.println(points);
+//        Collections.sort(locations, (a, b) -> compare(getPoint(a),getPoint(b)));
+//        System.out.println(locations);
+        for(String s:locations) locationPoints.add(getPoint(s));
+        Collections.sort(locationPoints, this::compare);
+        for(LatLng p:locationPoints) Log.i(LOG_TAG,p+"; ");
+//        System.out.println();
+//        fillMatrix();
 //        neighbors = getNeighbors(0);
 //        Arrays.sort(neighbors);
 //        Arrays.sort(locations,compareN);
 //        Collections.sort(neighbors, (a, b) -> compareN(a,b));
-        System.out.println();
+//        System.out.println();
 
         // выполняем задачу MyTimerTask, описание которой будет ниже:
         window = this.getWindow();
@@ -149,10 +153,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         PolylineOptions line = new PolylineOptions();
 //        line.width(4f).color(R.color.indigo_900);
-        LatLngBounds.Builder latLngBuilder = new LatLngBounds.Builder();
-        for (String o : locations) {
-            LatLng point = getPoint(o);
-            if(point!=null) line.add(point);
+//        LatLngBounds.Builder latLngBuilder = new LatLngBounds.Builder();
+        for (LatLng point : locationPoints) if(point!=null) line.add(point);
+
+//        for (String o : locations) {
+//            LatLng point = getPoint(o);
+//            if(point!=null) line.add(point);
 //                latLngBuilder.include(point);
 //            if (i == 0) {
 //                MarkerOptions startMarkerOptions = new MarkerOptions()
@@ -165,7 +171,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_marker_b));
 //                mMap.addMarker(endMarkerOptions);
 //            }
-        }
+
         mMap.addPolyline(line);
 
         mMap.moveCamera(CameraUpdateFactory.newLatLng(me));
