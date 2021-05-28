@@ -7,7 +7,6 @@ import android.util.Log;
 import android.view.View;
 import android.view.Window;
 import android.widget.ArrayAdapter;
-import android.widget.GridView;
 import android.widget.ListView;
 import android.widget.Toast;
 
@@ -35,6 +34,9 @@ import java.util.regex.Pattern;
 public class MainActivity extends AppCompatActivity implements OnMapReadyCallback {
 
     static final ArrayList<String> locations = new ArrayList<>();
+    int points = locations.size();
+    int[] neighbors = new int[points];
+
     Boolean music;
     public static final String PREFS_NAME = "MyPrefsFile";
     public static final String PREFS_LOC = "locations";
@@ -51,18 +53,35 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     class MyTimerTask extends TimerTask {
         @Override
         public void run() {
-            runOnUiThread(new Runnable(){
-                // Отображаем информацию в текстовом поле count:
-                @Override
-                public void run() {
+            // Отображаем информацию в текстовом поле count:
+            runOnUiThread(() -> {
 //                    window.setTitle(new Date().toString());
-                    String text = MyLocationListener.getLocation();
+                String text = MyLocationListener.getLocation();
 //                100+locations.size() + ": " +
-                    locations.add(text);
-                    freshListView();
-                    System.out.println(new Date()+" "+text);
-                }});
+                locations.add(text);
+                freshListView();
+                System.out.println(new Date()+" "+text);
+            });
         }
+    }
+
+    void fillMatrix(){
+        int[][] matrix = new int[points][points];
+        for (int i=0;i<points;i++){
+            System.out.println();
+            matrix[i] = getNeighbors(i);
+        }
+    }
+
+    int[] getNeighbors(int i){
+        int[] neighbors = new int[points];
+        for (int j=0;j<points;j++){
+            LatLng a = getPoint(locations.get(i));
+            LatLng b = getPoint(locations.get(j));
+            neighbors[j] = (int) ((Math.abs(b.latitude-a.latitude)+Math.abs(b.longitude-a.longitude))*1000000);
+        }
+        for (int neighbor : neighbors) System.out.print(neighbor+", ");
+        return neighbors;
     }
 
     @Override
@@ -73,7 +92,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
-        mapFragment.getMapAsync(this);
+        if (mapFragment != null) {
+            mapFragment.getMapAsync(this);
+        }
         Objects.requireNonNull(mapFragment).getMapAsync(this);
 
         //restore preferences
@@ -81,7 +102,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         music = settings.getBoolean("music", true);
         locations.addAll(settings.getStringSet(PREFS_LOC, new HashSet(locations)));
         Collections.sort(locations, (a, b) -> compare(getPoint(a),getPoint(b)));
+        points = locations.size();
+        System.out.println(points);
         System.out.println(locations);
+        fillMatrix();
+//        neighbors = getNeighbors(0);
+//        Arrays.sort(neighbors);
+//        Arrays.sort(locations,compareN);
+//        Collections.sort(neighbors, (a, b) -> compareN(a,b));
+        System.out.println();
 
         // выполняем задачу MyTimerTask, описание которой будет ниже:
         window = this.getWindow();
@@ -89,22 +118,25 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         timer.schedule(new MyTimerTask(), 10000, 10000);
     }
 
+//    private <T> int compare(T a, T b) {
+//        return Math.abs(b-a);
+//    }
 
-    LatLng getPoint(Object o) {
+    LatLng getPoint(String o) {
         final Pattern pattern = Pattern.compile("(\\d+,\\d+);(\\d+,\\d+)");
-        Matcher matcher = pattern.matcher(o.toString());
+        Matcher matcher = pattern.matcher(o);
         if (matcher.find()) {
-            LatLng point = new LatLng(
-                    Float.valueOf(matcher.group(1).replace(",", ".")),
-                    Float.valueOf(matcher.group(2).replace(",", "."))
+            return new LatLng(
+                    Float.parseFloat(Objects.requireNonNull(matcher.group(1)).replace(",", ".")),
+                    Float.parseFloat(Objects.requireNonNull(matcher.group(2)).replace(",", "."))
             );
-            return point;
         }
         return null;
     }
 
     int compare(LatLng b,LatLng a){
-        return (int)(((a.latitude == b.latitude) ?a.longitude-b.longitude :a.latitude-b.latitude)*1000000);
+        return (int) (((a.latitude == b.latitude) ?a.longitude-b.longitude :a.latitude-b.latitude)*1000000);
+//        return (int) (Math.abs(a.longitude-b.longitude) + Math.abs(a.latitude-b.latitude)*1000000);
     }
 
     @Override
