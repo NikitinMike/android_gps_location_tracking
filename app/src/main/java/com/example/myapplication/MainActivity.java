@@ -49,15 +49,15 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     int n=0;
     SupportMapFragment mapFragment;
 
-    Window window;
-    Timer timer;
+    static Window window;
+    static Timer timer;
     // Метод для описания того, что будет происходить при работе таймера (задача для таймера):
     class MyTimerTask extends TimerTask {
         @Override
         public void run() {
             // Отображаем информацию в текстовом поле count:
             runOnUiThread(() -> {
-//                    window.setTitle(new Date().toString());
+                window.setTitle(new Date().toString());
                 String text = MyLocationListener.getLocation();
 //                100+locations.size() + ": " +
                 locations.add(text);
@@ -78,6 +78,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             LatLng b = locationPoints.get(j);
             neighbors[j] = (int) ((Math.abs(b.latitude-a.latitude)+Math.abs(b.longitude-a.longitude))*1000000);
         }
+//        System.out.println();
 //        for (int neighbor : neighbors) System.out.print(neighbor+", ");
         return neighbors;
     }
@@ -103,7 +104,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //        System.out.println(locations);
         for(String s:locations) locationPoints.add(getPoint(s));
         Collections.sort(locationPoints, this::compare);
-        for(LatLng p:locationPoints) Log.i(LOG_TAG,p+"; ");
+//        for(LatLng p:locationPoints) Log.i(LOG_TAG,p+"; ");
 //        System.out.println();
         fillMatrix();
 //        System.out.println();
