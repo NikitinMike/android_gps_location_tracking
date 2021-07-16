@@ -48,6 +48,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     GoogleMap mMap;
     int n=0;
     SupportMapFragment mapFragment;
+    LatLng base;
 
     static Window window;
     static Timer timer;
@@ -103,6 +104,10 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //        points = locations.size(); System.out.println(points);
 //        System.out.println(locations);
         for(String s:locations) locationPoints.add(getPoint(s));
+
+        Location location = MyLocationListener.imHere;
+        base = new LatLng(location.getLatitude(),location.getLongitude());
+
         Collections.sort(locationPoints, this::compare);
 //        for(LatLng p:locationPoints) Log.i(LOG_TAG,p+"; ");
 //        System.out.println();
@@ -132,6 +137,14 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //        return (int) (Math.abs(a.longitude-b.longitude) + Math.abs(a.latitude-b.latitude)*1000000);
     }
 
+    int compare2(LatLng a,LatLng b){
+        double x1 = base.longitude-a.longitude;
+        double y1 =base.latitude-a.latitude;
+        double x2 = base.longitude-b.longitude;
+        double y2 =base.latitude-b.latitude;
+        return (int) ((Math.sqrt(x1*x1+y1*y1)-Math.sqrt(x2*x2+y2*y2))*1000000);
+    }
+
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
@@ -141,9 +154,16 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         LatLng me = new LatLng(location.getLatitude(),location.getLongitude());
 
         PolylineOptions line = new PolylineOptions();
+        MarkerOptions markerOptions = new MarkerOptions();
 //        line.width(4f).color(R.color.indigo_900);
 //        LatLngBounds.Builder latLngBuilder = new LatLngBounds.Builder();
-        for (LatLng point : locationPoints) if(point!=null) line.add(point);
+        for (LatLng point : locationPoints)
+            if(point!=null) line.add(point);
+//            if(point!=null) {
+//                markerOptions.position(point);
+//                mMap.addMarker(markerOptions);
+//            }
+
 //            latLngBuilder.include(point);
 //            if (i == 0) {
 //                MarkerOptions startMarkerOptions = new MarkerOptions()
