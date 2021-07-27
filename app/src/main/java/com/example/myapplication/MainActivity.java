@@ -1,6 +1,8 @@
 package com.example.myapplication;
 
 import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
 import android.util.Log;
@@ -16,8 +18,8 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 
@@ -35,8 +37,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
     static final ArrayList<String> locations = new ArrayList<>();
     static final ArrayList<LatLng> locationPoints = new ArrayList<>();
-    int points = locations.size();
-    int[][] matrix = new int[points][points];
+    int points = 1000;
+    int scale = 1000000;
+//    int[][] matrix = new int[points][points];
 //    int[] neighbors = new int[points];
 
     Boolean music;
@@ -69,7 +72,11 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     void fillMatrix(){
-        for (int i=0;i<points;i++) matrix[i] = getNeighbors(i);
+//        Log.i(LOG_TAG,":"+points);
+        for (int i=0;i<points;i++) {
+//            matrix[i] = getNeighbors(i);
+//            Log.i(LOG_TAG,matrix[i]+" ");
+        }
     }
 
     int[] getNeighbors(int i){
@@ -77,10 +84,12 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         for (int j=0;j<points;j++){
             LatLng a = locationPoints.get(i);
             LatLng b = locationPoints.get(j);
-            neighbors[j] = (int) ((Math.abs(b.latitude-a.latitude)+Math.abs(b.longitude-a.longitude))*1000000);
+            neighbors[j] = (int) ((Math.abs(b.latitude-a.latitude)+Math.abs(b.longitude-a.longitude))*scale);
         }
-//        System.out.println();
-//        for (int neighbor : neighbors) System.out.print(neighbor+", ");
+//        String log="";
+//        for (int neighbor : neighbors)
+//            log+=neighbor+", ";
+//        Log.i(LOG_TAG,log+", ");
         return neighbors;
     }
 
@@ -108,10 +117,18 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         Location location = MyLocationListener.imHere;
         base = new LatLng(location.getLatitude(),location.getLongitude());
 
+        Log.i(LOG_TAG,base.toString());
+
+        points = locationPoints.size();
+
         Collections.sort(locationPoints, this::compare);
-//        for(LatLng p:locationPoints) Log.i(LOG_TAG,p+"; ");
+
+//        locationPoints.remove(0);
+
+//        int i = 0;
+//        for(LatLng p:locationPoints) Log.i(LOG_TAG,++i+": "+ p);
 //        System.out.println();
-        fillMatrix();
+//        fillMatrix();
 //        System.out.println();
 
         // выполняем задачу MyTimerTask, описание которой будет ниже:
@@ -133,16 +150,28 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     }
 
     int compare(LatLng b,LatLng a){
-        return (int) (((a.latitude == b.latitude) ?a.longitude-b.longitude :a.latitude-b.latitude)*1000000);
+        return (int) (((a.latitude == b.latitude) ?a.longitude-b.longitude :a.latitude-b.latitude)*scale);
+//        return (int) (((a.longitude == b.longitude) ?a.latitude-b.latitude:a.longitude-b.longitude)*scale);
 //        return (int) (Math.abs(a.longitude-b.longitude) + Math.abs(a.latitude-b.latitude)*1000000);
     }
 
     int compare2(LatLng a,LatLng b){
-        double x1 = base.longitude-a.longitude;
-        double y1 =base.latitude-a.latitude;
-        double x2 = base.longitude-b.longitude;
-        double y2 =base.latitude-b.latitude;
-        return (int) ((Math.sqrt(x1*x1+y1*y1)-Math.sqrt(x2*x2+y2*y2))*1000000);
+        double a1 = a.longitude-base.longitude;
+        double a2 = a.latitude-base.latitude;
+        double b1 = b.longitude-base.longitude;
+        double b2 = b.latitude-base.latitude;
+        return (int) ((Math.sqrt(a1*a1+a2*a2)-Math.sqrt(b1*b1+b2*b2))*scale);
+    }
+
+    MarkerOptions setMarker(int bits){
+        MarkerOptions markerOptions = new MarkerOptions();
+//        markerOptions.alpha(0.1F);
+        Bitmap bitmap = Bitmap.createBitmap(bits,bits, Bitmap.Config.ARGB_8888);
+        for(int x=0;x<bits;x++)for(int y=0;y<bits;y++)bitmap.setPixel(x,y, Color.BLACK);
+        markerOptions.icon(BitmapDescriptorFactory.fromBitmap(bitmap));
+//        markerOptions.icon( BitmapDescriptorFactory.fromAsset("pixel.bmp") );
+//                Bitmap.createBitmap(1,1,new Bitmap.Config()));
+        return markerOptions;
     }
 
     @Override
@@ -154,15 +183,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         LatLng me = new LatLng(location.getLatitude(),location.getLongitude());
 
         PolylineOptions line = new PolylineOptions();
-        MarkerOptions markerOptions = new MarkerOptions();
+        MarkerOptions markerOptions = setMarker(10);
+
 //        line.width(4f).color(R.color.indigo_900);
 //        LatLngBounds.Builder latLngBuilder = new LatLngBounds.Builder();
-        for (LatLng point : locationPoints)
+        for (LatLng point : locationPoints){
             if(point!=null) line.add(point);
-//            if(point!=null) {
-//                markerOptions.position(point);
-//                mMap.addMarker(markerOptions);
-//            }
+            if(point!=null) {
+                markerOptions.position(point);
+                mMap.addMarker(markerOptions);
+            }
+        }
 
 //            latLngBuilder.include(point);
 //            if (i == 0) {
@@ -176,7 +207,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //                        .icon(BitmapDescriptorFactory.fromResource(R.drawable.ic_marker_b));
 //                mMap.addMarker(endMarkerOptions);
 //            }
-        mMap.addPolyline(line);
+
+//        mMap.addPolyline(line);
 
         mMap.moveCamera(CameraUpdateFactory.newLatLng(me));
 //        1: World
@@ -210,9 +242,9 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         String text = MyLocationListener.getLocation();
         // выводим сообщение
         this.setTitle(text);
-        Toast.makeText(this,text, Toast.LENGTH_SHORT).show();
-        // определяем строковый массив
         locations.add(text);
+        Toast.makeText(this,locations.size()+":"+text, Toast.LENGTH_SHORT).show();
+        // определяем строковый массив
         freshListView();
 
         //save music setup to system
