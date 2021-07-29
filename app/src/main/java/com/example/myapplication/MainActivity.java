@@ -1,10 +1,13 @@
 package com.example.myapplication;
 
+import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
+import android.os.Environment;
 import android.util.Log;
 import android.view.View;
 import android.view.Window;
@@ -23,6 +26,10 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
@@ -39,6 +46,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
     static final ArrayList<LatLng> locationPoints = new ArrayList<>();
     int points = 1000;
     int scale = 1000000;
+    long start=0;
+    long count = 0;
 //    int[][] matrix = new int[points][points];
 //    int[] neighbors = new int[points];
 
@@ -63,34 +72,13 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
             runOnUiThread(() -> {
                 window.setTitle(new Date().toString());
                 String text = MyLocationListener.getLocation();
-//                100+locations.size() + ": " +
                 locations.add(text);
+                locationPoints.add(getPoint(text));
+//                System.out.println((new Date().getTime()-start)/1000+" "+locationPoints.size()+" "+text);
                 freshListView();
-//                System.out.println(new Date()+" "+text);
+                if((++count%10)==0) refreshMap();
             });
         }
-    }
-
-    void fillMatrix(){
-//        Log.i(LOG_TAG,":"+points);
-        for (int i=0;i<points;i++) {
-//            matrix[i] = getNeighbors(i);
-//            Log.i(LOG_TAG,matrix[i]+" ");
-        }
-    }
-
-    int[] getNeighbors(int i){
-        int[] neighbors = new int[points];
-        for (int j=0;j<points;j++){
-            LatLng a = locationPoints.get(i);
-            LatLng b = locationPoints.get(j);
-            neighbors[j] = (int) ((Math.abs(b.latitude-a.latitude)+Math.abs(b.longitude-a.longitude))*scale);
-        }
-//        String log="";
-//        for (int neighbor : neighbors)
-//            log+=neighbor+", ";
-//        Log.i(LOG_TAG,log+", ");
-        return neighbors;
     }
 
     @Override
@@ -98,6 +86,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         MyLocationListener.SetUpLocationListener(this);
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        start = new Date().getTime();
 
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
@@ -155,14 +144,6 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //        return (int) (Math.abs(a.longitude-b.longitude) + Math.abs(a.latitude-b.latitude)*1000000);
     }
 
-    int compare2(LatLng a,LatLng b){
-        double a1 = a.longitude-base.longitude;
-        double a2 = a.latitude-base.latitude;
-        double b1 = b.longitude-base.longitude;
-        double b2 = b.latitude-base.latitude;
-        return (int) ((Math.sqrt(a1*a1+a2*a2)-Math.sqrt(b1*b1+b2*b2))*scale);
-    }
-
     MarkerOptions setMarker(int bits){
         MarkerOptions markerOptions = new MarkerOptions();
 //        markerOptions.alpha(0.1F);
@@ -174,24 +155,24 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         return markerOptions;
     }
 
-    @Override
-    public void onMapReady(GoogleMap googleMap) {
-        mMap = googleMap;
+    void refreshMap(){
         Location location = MyLocationListener.imHere;
         // Add a marker in Sydney and move the camera
 //       LatLng me = new LatLng(56.628335, 47.876477);
         LatLng me = new LatLng(location.getLatitude(),location.getLongitude());
 
-        PolylineOptions line = new PolylineOptions();
-        MarkerOptions markerOptions = setMarker(10);
+        if(count==0){
+    //        PolylineOptions line = new PolylineOptions();
+            MarkerOptions markerOptions = setMarker(10);
 
-//        line.width(4f).color(R.color.indigo_900);
-//        LatLngBounds.Builder latLngBuilder = new LatLngBounds.Builder();
-        for (LatLng point : locationPoints){
-            if(point!=null) line.add(point);
-            if(point!=null) {
-                markerOptions.position(point);
-                mMap.addMarker(markerOptions);
+    //        line.width(4f).color(R.color.indigo_900);
+    //        LatLngBounds.Builder latLngBuilder = new LatLngBounds.Builder();
+            for (LatLng point : locationPoints){
+    //            if(point!=null) line.add(point);
+                if(point!=null) {
+                    markerOptions.position(point);
+                    mMap.addMarker(markerOptions);
+                }
             }
         }
 
@@ -216,10 +197,17 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 //        10: City
 //        15: Streets
 //        20: Buildings
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(me, 14.0f));
+//        if((count%10)==0)
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(me, 14.0f));
         mMap.addMarker(new MarkerOptions().position(me).title("It's Me"));
 //        mMap.setMaxZoomPreference(mMap.getMaxZoomLevel());
 //        getLocation();
+    }
+
+    @Override
+    public void onMapReady(GoogleMap googleMap) {
+        mMap = googleMap;
+        refreshMap();
     }
 
     @Override
@@ -256,7 +244,27 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
 
         editor.putStringSet(PREFS_LOC, new HashSet(locations));
         editor.apply();
+        save();
 
     }
 
+    void save() {
+        File file = new File(Environment.getExternalStorageDirectory(), "/points.txt");
+        Log.i(LOG_TAG,file.toString());
+        FileOutputStream fos = null; // save
+        try {
+            fos = new FileOutputStream(file, false);
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+        try {
+//        String data = "TEST DATA\r\n";
+//            fos.write(data.getBytes());
+            for (LatLng pt:locationPoints)
+                fos.write((pt.toString()+"\n").getBytes());
+            fos.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 }
