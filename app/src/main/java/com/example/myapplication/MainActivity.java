@@ -295,7 +295,8 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         }
     }
 
-    void saveDBRecord(long time,double latitude,double longitude) {
+    long saveDBRecord(long time,double latitude,double longitude) {
+        if(getDBRecord(latitude,longitude)) return 0;
         // создаем объект для данных
         ContentValues cv = new ContentValues();
 //        cv.put("name", "name");
@@ -306,6 +307,7 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         // вставляем запись и получаем ее ID
         long rowID = db.insert("mytable", null, cv);
 //        Log.d(LOG_TAG, "row inserted, ID = " + rowID);
+        return rowID;
     }
 
     void clearDBData() {
@@ -313,6 +315,22 @@ public class MainActivity extends AppCompatActivity implements OnMapReadyCallbac
         // удаляем все записи
         int clearCount = db.delete("mytable", null, null);
         Log.d(LOG_TAG, "deleted rows count = " + clearCount);
+    }
+
+    boolean getDBRecord(double latitude,double longitude){
+        Cursor c = db.rawQuery("SELECT id,datetime FROM mytable WHERE "
+                +"latitude = "+latitude+" AND " +"longitude = "+longitude, null);
+        if (c.moveToFirst()){
+            do {
+                // Passing values
+                long id = c.getLong(0);
+                long time = c.getLong(1);
+                // Do something Here with values
+            } while(c.moveToNext());
+            return true;
+        }
+        c.close();
+        return false;
     }
 
     void getDBData() {
